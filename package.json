@@ -1,5 +1,5 @@
 {
-  "name": "jdbc",
+  "name": "@cubejs-backend/jdbc",
   "version": "0.7.6",
   "description": "Node Module JDBC wrapper",
   "main": "index.js",
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/CraZySacX/node-jdbc.git"
+    "url": "git://github.com/cube-js/node-jdbc.git"
   },
   "directories": {
     "doc": ".",
