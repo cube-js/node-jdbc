@@ -7,14 +7,14 @@ jobs:
     name: node-jdbc
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
         node_version:
-          - 12
-          - 14
-          - 15
           - 16
+          - 18
+          - 20
         java_version:
           - 8
           - 9
@@ -24,6 +24,7 @@ jobs:
           - 13
           - 14
           - 15
+          # - 21
         arch:
           - x64
     steps:
