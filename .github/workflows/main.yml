@@ -11,9 +11,6 @@ jobs:
         os:
           - ubuntu-latest
         node_version:
-          - 12
-          - 14
-          - 15
           - 16
           - 18
         java_version:
