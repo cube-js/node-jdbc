@@ -11,14 +11,15 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "chai": "^4",
     "jshint": "2.13.6",
     "lolex": "^6.0.0",
-    "nodeunit": "~0.11.3",
+    "mocha": "^5",
     "q": "^1.5.1"
   },
   "scripts": {
     "pretest": "bash bin/startdbs",
-    "test": "nodeunit test",
+    "test": "mocha --exit",
     "posttest": "bash bin/stopdbs",
     "lint": "jshint lib/**.js test/**.js"
   },

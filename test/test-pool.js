@@ -1,96 +1,102 @@
-var _ = require('lodash');
-var asyncjs = require('async');
-var nodeunit = require('nodeunit');
-var jinst = require('../lib/jinst');
-var Pool = require('../lib/pool');
-var java = jinst.getInstance();
+const _ = require('lodash');
+const asyncjs = require('async');
+const Pool = require('../lib/pool');
+const jinst = require('../lib/jinst');
+const chai = require('chai');
+const expect = chai.expect;
+
+let testpool;
 
 if (!jinst.isJvmCreated()) {
   jinst.addOption("-Xrs");
-  jinst.setupClasspath(['./drivers/hsqldb.jar',
-                        './drivers/derby.jar',
-                        './drivers/derbyclient.jar',
-                        './drivers/derbytools.jar']);
+  jinst.setupClasspath([
+    './drivers/hsqldb.jar',
+    './drivers/derby.jar',
+    './drivers/derbyclient.jar',
+    './drivers/derbytools.jar'
+  ]);
 }
 
-var config = {
+const config = {
   url: 'jdbc:hsqldb:hsql://localhost/xdb',
-  user : 'SA',
+  user: 'SA',
   password: '',
   minpoolsize: 2,
   maxpoolsize: 3
 };
 
-module.exports = {
-  setUp: function(callback) {
+describe('Connection Pool Tests', function() {
+
+  beforeEach(function(done) {
     testpool = new Pool(config);
     testpool.initialize(function(err) {
-      callback();
+      done();
     });
-  },
-  tearDown: function(callback) {
+  });
+
+  afterEach(function(done) {
     testpool = null;
-    callback();
-  },
-  teststatus: function(test) {
-    testpool.reserve(function(err) {
+    done();
+  });
+
+  it('should report correct pool status after reserving', function(done) {
+    testpool.reserve(function() {
       testpool.status(function(err, status) {
-        test.expect(2);
-        test.equal(status.available, 1);
-        test.equal(status.reserved, 1);
-        test.done();
+        expect(status.available).to.equal(1);
+        expect(status.reserved).to.equal(1);
+        done();
       });
     });
-  },
-  testreserverelease: function(test) {
+  });
+
+  it('should reserve and release connection correctly', function(done) {
     testpool.reserve(function(err, conn) {
-      testpool.release(conn, function(err, conn) {
-        test.expect(3);
-        test.equal(null, err);
-        test.equal(testpool._pool.length, 2);
-        test.equal(testpool._reserved.length, 0);
-        test.done();
+      testpool.release(conn, function(err) {
+        expect(testpool._pool.length).to.equal(2);
+        expect(testpool._reserved.length).to.equal(0);
+        done();
       });
     });
-  },
-  testreservepastmin: function(test) {
+  });
+
+  it('should reserve up to min pool size', function(done) {
     asyncjs.times(3, function(n, next) {
       testpool.reserve(function(err, conn) {
         next(err, conn);
       });
     }, function(err, results) {
-      test.expect(2);
-      test.equal(testpool._pool.length, 0);
-      test.equal(testpool._reserved.length, 3);
+      expect(testpool._pool.length).to.equal(0);
+      expect(testpool._reserved.length).to.equal(3);
+
       _.each(results, function(conn) {
         testpool.release(conn, function(err) {});
       });
-      test.done();
+      done();
     });
-  },
-  testovermax: function(test) {
+  });
+
+  it('should not exceed max pool size', function(done) {
     asyncjs.times(4, function(n, next) {
       testpool.reserve(function(err, conn) {
         next(err, conn);
       });
     }, function(err, results) {
-      test.expect(3);
-      test.ok(err);
-      test.equal(testpool._reserved.length, 3);
-      test.equal(testpool._pool.length, 0);
+      expect(err).to.exist;
+      expect(testpool._reserved.length).to.equal(3);
+      expect(testpool._pool.length).to.equal(0);
+
       _.each(results, function(conn) {
         testpool.release(conn, function(err) {});
       });
-      test.done();
+      done();
     });
-  },
-  testpurge: function(test) {
+  });
+
+  it('should purge the pool', function(done) {
     testpool.purge(function(err) {
-      test.expect(3);
-      test.equal(null, err);
-      test.equal(testpool._pool.length, 0);
-      test.equal(testpool._reserved.length, 0);
-      test.done();
+      expect(testpool._pool.length).to.equal(0);
+      expect(testpool._reserved.length).to.equal(0);
+      done();
     });
-  },
-};
+  });
+});

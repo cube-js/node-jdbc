@@ -1,171 +1,163 @@
-var nodeunit = require('nodeunit');
-var jinst = require('../lib/jinst');
-var JDBC = require('../lib/jdbc');
-var asyncjs = require('async');
+const chai = require('chai');
+const expect = chai.expect;
+const jinst = require('../lib/jinst');
+const JDBC = require('../lib/jdbc');
+const async = require('async');
 
 if (!jinst.isJvmCreated()) {
   jinst.addOption("-Xrs");
-  jinst.setupClasspath(['./drivers/hsqldb.jar',
+  jinst.setupClasspath([
+    './drivers/hsqldb.jar',
     './drivers/derby.jar',
     './drivers/derbyclient.jar',
-    './drivers/derbytools.jar']);
+    './drivers/derbytools.jar'
+  ]);
 }
 
-var derby = new JDBC({
+const derby = new JDBC({
   url: 'jdbc:derby://localhost:1527/testdb;create=true'
 });
 
-var testconn = null;
+let testconn = null;
 
-module.exports = {
-  setUp: function (callback) {
+describe('JDBC Derby Multiple Inserts Tests', function() {
+  beforeEach(function(done) {
     if (testconn === null && derby._pool.length > 0) {
-      derby.reserve(function (err, conn) {
+      derby.reserve(function(err, conn) {
+        if (err) return done(err);
         testconn = conn;
-        callback();
+        done();
       });
     } else {
-      callback();
+      done();
     }
-  },
-  tearDown: function (callback) {
-    if (testconn) {
-      derby.release(testconn, function () {
-        callback();
-      });
-    } else {
-      callback();
-    }
-  },
-  testinitialize: function (test) {
-    derby.initialize(function (err) {
-      test.expect(1);
-      test.equal(err, null);
-      test.done();
-    });
-  },
-  testcreatetable: function (test) {
-    testconn.conn.createStatement(function (err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        var create = "CREATE TABLE blahMax ";
-        create += "(id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP)";
-        statement.executeUpdate(create, function (err) {
-          test.expect(1);
-          test.equal(null, err);
-          test.done();
-        });
-      }
-    });
-  },
-  testMultipleInserts: function (test) {
-    testconn.conn.createStatement(function (err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        asyncjs.times(50, function (n, next) {
-            var insert = "INSERT INTO blahMax VALUES " +
-              "(" + n + ", 'Jason_" + n + "', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP)";
+  });
 
-            statement.executeUpdate(insert, function (err, result) {
-              next(err, result);
-            });
-          },
-          function (err, results) {
-            if (err)
-              console.log(err);
-            else {
-              test.expect(3);
-              test.equal(null, err);
-              test.equal(50, results.length);
-              test.ok(results);
-              test.done();
-            }
-          });
-      }
+  afterEach(function(done) {
+    if (testconn) {
+      derby.release(testconn, function(err) {
+        testconn = null;
+        done(err);
+      });
+    } else {
+      done();
+    }
+  });
+
+  it('should initialize', function(done) {
+    derby.initialize(function(err) {
+      expect(err).to.be.null;
+      done();
     });
-  },
-  testselect: function (test) {
-    testconn.conn.createStatement(function (err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeQuery("SELECT * FROM blahMax", function (err, resultset) {
-          test.expect(7);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObjArray(function (err, results) {
-            test.equal(results.length, 50);
-            test.ok(results[0].NAME.startsWith('Jason'));
-            test.ok(results[0].DATE);
-            test.ok(results[0].TIME);
-            test.ok(results[0].TIMESTAMP);
-            test.done();
+  });
+
+  it('should create table', function(done) {
+    testconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      const create = "CREATE TABLE blahMax " +
+        "(id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP)";
+
+      statement.executeUpdate(create, function(err) {
+        expect(err).to.be.null;
+        done();
+      });
+    });
+  });
+
+  it('should make MultipleInserts', function(done) {
+    testconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      async.times(50, function(n, next) {
+        const insert = "INSERT INTO blahMax VALUES " +
+          `(${n}, 'Jason_${n}', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP)`;
+
+        statement.executeUpdate(insert, function(err, result) {
+          next(err, result);
+        });
+      }, function(err, results) {
+        expect(err).to.be.null;
+        expect(results).to.have.lengthOf(50);
+        expect(results).to.exist;
+        done();
+      });
+    });
+  });
+
+  it('should select', function(done) {
+    testconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeQuery("SELECT * FROM blahMax", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObjArray(function(err, results) {
+          expect(err).to.be.null;
+          expect(results).to.have.lengthOf(50);
+          expect(results[0].NAME).to.match(/^Jason/);
+          expect(results[0].DATE).to.exist;
+          expect(results[0].TIME).to.exist;
+          expect(results[0].TIMESTAMP).to.exist;
+          done();
+        });
+      });
+    });
+  });
+
+  it('should selectWithMax10Rows', function(done) {
+    testconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.setMaxRows(10, function(err) {
+        if (err) return done(err);
+
+        statement.executeQuery("SELECT * FROM blahMax", function(err, resultset) {
+          expect(err).to.be.null;
+          expect(resultset).to.exist;
+
+          resultset.toObjArray(function(err, results) {
+            expect(err).to.be.null;
+            expect(results).to.have.lengthOf(10);
+            expect(results[0].NAME).to.match(/^Jason/);
+            done();
           });
         });
-      }
+      });
     });
-  },
-  testselectWithMax10Rows: function (test) {
-    testconn.conn.createStatement(function (err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.setMaxRows(10, function (err) {
-          if (err) {
-            console.log(err);
-          } else {
-            statement.executeQuery("SELECT * FROM blahMax", function (err, resultset) {
-              test.expect(4);
-              test.equal(null, err);
-              test.ok(resultset);
-              resultset.toObjArray(function (err, results) {
-                test.equal(results.length, 10);
-                test.ok(results[0].NAME.startsWith('Jason'));
-                test.done();
-              });
-            });
-          }
-        })
-      }
-    });
-  },
-  testselectWithMax70Rows: function (test) {
-    testconn.conn.createStatement(function (err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.setMaxRows(70, function (err) {
-          if (err) {
-            console.log(err);
-          } else {
-            statement.executeQuery("SELECT * FROM blahMax", function (err, resultset) {
-              test.expect(4);
-              test.equal(null, err);
-              test.ok(resultset);
-              resultset.toObjArray(function (err, results) {
-                test.equal(results.length, 50);
-                test.ok(results[0].NAME.startsWith('Jason'));
-                test.done();
-              });
-            });
-          }
-        })
-      }
-    });
-  },
-  testdroptable: function (test) {
-    testconn.conn.createStatement(function (err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DROP TABLE blahMax", function (err) {
-          test.expect(1);
-          test.equal(null, err);
-          test.done();
+  });
+
+  it('should selectWithMax70Rows', function(done) {
+    testconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.setMaxRows(70, function(err) {
+        if (err) return done(err);
+
+        statement.executeQuery("SELECT * FROM blahMax", function(err, resultset) {
+          expect(err).to.be.null;
+          expect(resultset).to.exist;
+
+          resultset.toObjArray(function(err, results) {
+            expect(err).to.be.null;
+            expect(results).to.have.lengthOf(50);
+            expect(results[0].NAME).to.match(/^Jason/);
+            done();
+          });
         });
-      }
+      });
     });
-  }
-};
+  });
+
+  it('should drop table', function(done) {
+    testconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate("DROP TABLE blahMax", function(err) {
+        expect(err).to.be.null;
+        done();
+      });
+    });
+  });
+});
