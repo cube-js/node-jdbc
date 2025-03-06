@@ -14,8 +14,7 @@
     "chai": "^4",
     "jshint": "2.13.6",
     "lolex": "^6.0.0",
-    "mocha": "^5",
-    "q": "^1.5.1"
+    "mocha": "^5"
   },
   "scripts": {
     "pretest": "bash bin/startdbs",
