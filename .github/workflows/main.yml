@@ -26,7 +26,6 @@ jobs:
           # Oracle
           - distribution: oracle
             java_version: 17
-            new_drivers: true
           - distribution: oracle
             java_version: 21
             new_drivers: true
