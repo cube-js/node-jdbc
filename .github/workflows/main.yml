@@ -28,8 +28,10 @@ jobs:
           # Oracle
           - distribution: oracle
             java_version: 17
+            new_drivers: true
           - distribution: oracle
             java_version: 21
+            new_drivers: true
           # Temurin
           - distribution: temurin
             java_version: 8
@@ -39,6 +41,7 @@ jobs:
             java_version: 17
           - distribution: temurin
             java_version: 21
+            new_drivers: true
           # Microsoft
           - distribution: microsoft
             java_version: 11
@@ -46,6 +49,7 @@ jobs:
             java_version: 17
           - distribution: microsoft
             java_version: 21
+            new_drivers: true
           # Corretto
           - distribution: corretto
             java_version: 8
@@ -55,6 +59,7 @@ jobs:
             java_version: 17
           - distribution: corretto
             java_version: 21
+            new_drivers: true
           # Azul Zulu OpenJDK
           - distribution: zulu
             java_version: 8
@@ -64,6 +69,7 @@ jobs:
             java_version: 17
           - distribution: zulu
             java_version: 21
+            new_drivers: true
     steps:
       - name: 🧶 Get yarn cache directory path 🧶
         id: yarn-cache-dir-path
@@ -94,5 +100,8 @@ jobs:
           node-version: ${{ matrix.node_version }}
       - name: 💾 Install 💾
         run: yarn install
+      - name: Set up new drivers
+        run: cp drivers-10.15/* drivers
+        if: matrix.new_drivers
       - name: 🧪 Test (Node ${{ matrix.node_version }}, Java ${{ matrix.java_version }}, ${{ matrix.distribution }}) 🧪
         run: yarn test
