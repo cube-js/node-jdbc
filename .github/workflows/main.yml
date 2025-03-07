@@ -5,12 +5,10 @@ name: CI
 jobs:
   node-jdbc:
     name: node-jdbc
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
         node_version:
           - 18
           - 20
