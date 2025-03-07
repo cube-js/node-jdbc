@@ -12,16 +12,6 @@ jobs:
         node_version:
           - 18
           - 20
-        distribution:
-          - oracle
-          - temurin
-          - microsoft
-          - corretto
-          - zulu
-        java_version:
-          - 17
-        arch:
-          - x64
         include:
           # Oracle
           - distribution: oracle
@@ -67,6 +57,8 @@ jobs:
           - distribution: zulu
             java_version: 21
             new_drivers: true
+        arch:
+          - x64
     steps:
       - name: ☑️ Checkout ☑️
         uses: actions/checkout@v4
