@@ -1,156 +1,165 @@
-var nodeunit = require('nodeunit');
-var jinst = require('../lib/jinst');
-var JDBC = require('../lib/jdbc');
+const chai = require('chai');
+const expect = chai.expect;
+const jinst = require('../lib/jinst');
+const JDBC = require('../lib/jdbc');
 
 if (!jinst.isJvmCreated()) {
   jinst.addOption("-Xrs");
-  jinst.setupClasspath(['./drivers/hsqldb.jar',
-                        './drivers/derby.jar',
-                        './drivers/derbyclient.jar',
-                        './drivers/derbytools.jar']);
+  jinst.setupClasspath([
+    './drivers/hsqldb.jar',
+    './drivers/derby.jar',
+    './drivers/derbyclient.jar',
+    './drivers/derbytools.jar'
+  ]);
 }
 
-var config = {
+const config = {
   url: 'jdbc:hsqldb:hsql://localhost/xdb',
-  user : 'SA',
+  user: 'SA',
   password: ''
 };
 
-var hsqldb = new JDBC(config);
-var testconn = null;
+const hsqldb = new JDBC(config);
+let testconn = null;
 
-module.exports = {
-  setUp: function(callback) {
+describe('JDBC HSQLDB Tests', function() {
+  beforeEach(function(done) {
     if (testconn === null && hsqldb._pool.length > 0) {
       hsqldb.reserve(function(err, conn) {
+        if (err) return done(err);
         testconn = conn;
-        callback();
+        done();
       });
     } else {
-      callback();
+      done();
     }
-  },
-  tearDown: function(callback) {
+  });
+
+  afterEach(function(done) {
     if (testconn) {
       hsqldb.release(testconn, function(err) {
-        callback();
+        testconn = null;
+        done(err);
       });
     } else {
-      callback();
+      done();
     }
-  },
-  testinit: function(test) {
+  });
+
+  it('should init', function(done) {
     hsqldb.initialize(function(err) {
-      test.expect(1);
-      test.equal(null, err);
-      test.done();
+      expect(err).to.be.null;
+      done();
     });
-  },
-  testcreatetable: function(test) {
+  });
+
+  it('should create table', function(done) {
     testconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("CREATE TABLE blah (id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP);", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(0, result);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "CREATE TABLE blah (id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP);",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(0);
+          done();
+        }
+      );
     });
-  },
-  testinsert: function(test) {
+  });
+
+  it('should insert', function(done) {
     testconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("INSERT INTO blah VALUES (1, 'Jason', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP);", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(1, result);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "INSERT INTO blah VALUES (1, 'Jason', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP);",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
     });
-  },
-  testcreateprocedure: function(test) {
+  });
+
+  it('should create procedure', function(done) {
     testconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("CREATE PROCEDURE new_blah(id int, name varchar(10)) " +
-                                "MODIFIES SQL DATA " +
-                                "BEGIN ATOMIC " +
-                                "  INSERT INTO blah VALUES (id, name, CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP); " +
-                                "END;", function(err, result) {
-          test.expect(1);
-          test.equal(null, err);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "CREATE PROCEDURE new_blah(id int, name varchar(10)) " +
+        "MODIFIES SQL DATA " +
+        "BEGIN ATOMIC " +
+        "  INSERT INTO blah VALUES (id, name, CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP); " +
+        "END;",
+        function(err, result) {
+          expect(err).to.be.null;
+          done();
+        }
+      );
     });
-  },
-  testcallprocedure: function(test) {
+  });
+
+  it('should call procedure', function(done) {
     testconn.conn.prepareCall("{ call new_blah(2, 'Another')}", function(err, callablestatement) {
-      if (err) {
-        console.log(err);
-      } else {
-        callablestatement.execute(function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(false, result);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      callablestatement.execute(function(err, result) {
+        expect(err).to.be.null;
+        expect(result).to.equal(false);
+        done();
+      });
     });
-  },
-  testselectaftercall: function(test) {
+  });
+
+  it('should select after call', function(done) {
     testconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeQuery("SELECT * FROM blah;", function(err, resultset) {
-          test.expect(7);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObjArray(function(err, results) {
-            test.equal(results.length, 2);
-            test.equal(results[0].NAME, 'Jason');
-            test.ok(results[0].DATE);
-            test.ok(results[0].TIME);
-            test.ok(results[0].TIMESTAMP);
-            test.done();
-          });
+      if (err) return done(err);
+
+      statement.executeQuery("SELECT * FROM blah;", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObjArray(function(err, results) {
+          expect(err).to.be.null;
+          expect(results).to.have.lengthOf(2);
+          expect(results[0].NAME).to.equal('Jason');
+          expect(results[0].DATE).to.exist;
+          expect(results[0].TIME).to.exist;
+          expect(results[0].TIMESTAMP).to.exist;
+          done();
         });
-      }
+      });
     });
-  },
-  testdropprocedure: function(test) {
+  });
+
+  it('should drop procedure', function(done) {
     testconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DROP PROCEDURE IF EXISTS new_blah;", function(err, result) {
-          test.expect(1);
-          test.equal(null, err);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "DROP PROCEDURE IF EXISTS new_blah;",
+        function(err, result) {
+          expect(err).to.be.null;
+          done();
+        }
+      );
     });
-  },
-  testdroptable: function(test) {
+  });
+
+  it('should drop table', function(done) {
     testconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DROP TABLE blah;", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(0, result);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "DROP TABLE blah;",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(0);
+          done();
+        }
+      );
     });
-  }
-};
+  });
+});

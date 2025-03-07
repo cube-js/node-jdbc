@@ -1,349 +1,368 @@
-var nodeunit = require('nodeunit');
-var jinst = require('../lib/jinst');
-var JDBC = require('../lib/jdbc');
+const chai = require('chai');
+const expect = chai.expect;
+const jinst = require('../lib/jinst');
+const JDBC = require('../lib/jdbc');
 
 if (!jinst.isJvmCreated()) {
   jinst.addOption("-Xrs");
-  jinst.setupClasspath(['./drivers/hsqldb.jar',
-                        './drivers/derby.jar',
-                        './drivers/derbyclient.jar',
-                        './drivers/derbytools.jar']);
+  jinst.setupClasspath([
+    './drivers/hsqldb.jar',
+    './drivers/derby.jar',
+    './drivers/derbyclient.jar',
+    './drivers/derbytools.jar'
+  ]);
 }
 
-var configWithUserInUrl = {
+const configWithUserInUrl = {
   url: 'jdbc:hsqldb:hsql://localhost/xdb;user=SA;password='
 };
 
-var configderby = {
-  url: 'jdbc:derby://localhost:1527/testdb'
+const configderby = {
+  url: 'jdbc:derby://localhost:1527/testdb;create=true'
 };
 
-var hsqldb = new JDBC(configWithUserInUrl);
-var derby = new JDBC(configderby);
-var hsqldbconn = null;
-var derbyconn = null;
+const hsqldb = new JDBC(configWithUserInUrl);
+const derby = new JDBC(configderby);
+let hsqldbconn = null;
+let derbyconn = null;
 
-exports.hsqldb = {
-  setUp: function(callback) {
+describe('JDBC HSQLDB Tests', function() {
+  beforeEach(function(done) {
     if (hsqldbconn === null && hsqldb._pool.length > 0) {
       hsqldb.reserve(function(err, conn) {
+        if (err) return done(err);
         hsqldbconn = conn;
-        callback();
+        done();
       });
     } else {
-      callback();
+      done();
     }
-  },
-  tearDown: function(callback) {
+  });
+
+  afterEach(function(done) {
     if (hsqldbconn) {
       hsqldb.release(hsqldbconn, function(err) {
-        callback();
+        hsqldbconn = null;
+        done(err);
       });
     } else {
-      callback();
+      done();
     }
-  },
-  testinitialize: function(test) {
-    hsqldb.initialize(function(err) {
-      test.expect(1);
-      test.equal(null, err);
-      test.done();
-    });
-  },
-  testcreatetable: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("CREATE TABLE blah (id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP);", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(0, result);
-          test.done();
-        });
-      }
-    });
-  },
-  testinsert: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("INSERT INTO blah VALUES (1, 'Jason', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP);", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(1, result);
-          test.done();
-        });
-      }
-    });
-  },
-  testupdate: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("UPDATE blah SET id = 2 WHERE name = 'Jason';", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.ok(1, result);
-          test.done();
-        });
-      }
-    });
-  },
-  testselect: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeQuery("SELECT * FROM blah;", function(err, resultset) {
-          test.expect(7);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObjArray(function(err, results) {
-            test.equal(results.length, 1);
-            test.equal(results[0].NAME, 'Jason');
-            test.ok(results[0].DATE);
-            test.ok(results[0].TIME);
-            test.ok(results[0].TIMESTAMP);
-            test.done();
-          });
-        });
-      }
-    });
-  },
-  testselectbyexecute: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.execute("SELECT * FROM blah;", function(err, resultset) {
-          test.expect(7);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObjArray(function(err, results) {
-            test.equal(results.length, 1);
-            test.equal(results[0].NAME, 'Jason');
-            test.ok(results[0].DATE);
-            test.ok(results[0].TIME);
-            test.ok(results[0].TIMESTAMP);
-            test.done();
-          });
-        });
-      }
-    });
-  },
-  testupdatebyexecute: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.execute("UPDATE blah SET id = 2 WHERE name = 'Jason';", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.ok(1, result);
-          test.done();
-        });
-      }
-    });
-  },
-  testdelete: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DELETE FROM blah WHERE id = 2;", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(1, result);
-          test.done();
-        });
-      }
-    });
-  },
-  testdroptable: function(test) {
-    hsqldbconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DROP TABLE blah;", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.equal(0, result);
-          test.done();
-        });
-      }
-    });
-  },
-};
+  });
 
-exports.derby = {
-  setUp: function(callback) {
+  it('should initialize', function(done) {
+    hsqldb.initialize(function(err) {
+      expect(err).to.be.null;
+      done();
+    });
+  });
+
+  it('should create table', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "CREATE TABLE blah (id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP);",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(0);
+          done();
+        }
+      );
+    });
+  });
+
+  it('should insert', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "INSERT INTO blah VALUES (1, 'Jason', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP);",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
+    });
+  });
+
+  it('should update', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "UPDATE blah SET id = 2 WHERE name = 'Jason';",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
+    });
+  });
+
+  it('should select', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeQuery("SELECT * FROM blah;", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObjArray(function(err, results) {
+          expect(err).to.be.null;
+          expect(results).to.have.lengthOf(1);
+          expect(results[0].NAME).to.equal('Jason');
+          expect(results[0].DATE).to.exist;
+          expect(results[0].TIME).to.exist;
+          expect(results[0].TIMESTAMP).to.exist;
+          done();
+        });
+      });
+    });
+  });
+
+  it('should select by execute', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.execute("SELECT * FROM blah;", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObjArray(function(err, results) {
+          expect(err).to.be.null;
+          expect(results).to.have.lengthOf(1);
+          expect(results[0].NAME).to.equal('Jason');
+          expect(results[0].DATE).to.exist;
+          expect(results[0].TIME).to.exist;
+          expect(results[0].TIMESTAMP).to.exist;
+          done();
+        });
+      });
+    });
+  });
+
+  it('should update by execute', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.execute(
+        "UPDATE blah SET id = 2 WHERE name = 'Jason';",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
+    });
+  });
+
+  it('should delete', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "DELETE FROM blah WHERE id = 2;",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
+    });
+  });
+
+  it('should drop table', function(done) {
+    hsqldbconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "DROP TABLE blah;",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(0);
+          done();
+        }
+      );
+    });
+  });
+});
+
+describe('JDBC Derby Tests', function() {
+  beforeEach(function(done) {
     if (derbyconn === null && derby._pool.length > 0) {
       derby.reserve(function(err, conn) {
+        if (err) return done(err);
         derbyconn = conn;
-        callback();
+        done();
       });
     } else {
-      callback();
+      done();
     }
-  },
-  tearDown: function(callback) {
+  });
+
+  afterEach(function(done) {
     if (derbyconn) {
       derby.release(derbyconn, function(err) {
-        callback();
+        derbyconn = null;
+        done(err);
       });
     } else {
-      callback();
+      done();
     }
-  },
-  testinitialize: function(test) {
+  });
+
+  it('should initialize', function(done) {
     derby.initialize(function(err) {
-      test.expect(1);
-      test.equal(null, err);
-      test.done();
+      expect(err).to.be.null;
+      done();
     });
-  },
-  testcreatetable: function(test) {
-    derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("CREATE TABLE blah (id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP)", function(err, result) {
-          test.expect(1);
-          test.equal(null, err);
-          test.done();
-        });
-      }
-    });
-  },
-  testinsert: function(test) {
-    derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("INSERT INTO blah VALUES (1, 'Jason', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP)", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.ok(result && result == 1);
-          test.done();
-        });
-      }
-    });
-  },
-  testupdate: function(test) {
-    derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("UPDATE blah SET id = 2 WHERE name = 'Jason'", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.ok(result && result == 1);
-          test.done();
-        });
-      }
-    });
-  },
-  testselect: function(test) {
-    derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeQuery("SELECT * FROM blah", function(err, resultset) {
-          test.expect(7);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObjArray(function(err, results) {
-            test.equal(results.length, 1);
-            test.equal(results[0].NAME, 'Jason');
-            test.ok(results[0].DATE);
-            test.ok(results[0].TIME);
-            test.ok(results[0].TIMESTAMP);
-            test.done();
-          });
-        });
-      }
-    });
-  },
-  testselectobject: function(test) {
-    derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeQuery("SELECT * FROM blah", function(err, resultset) {
-          test.expect(13);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObject(function(err, results) {
-            test.equal(results.rows.length, 1);
-            test.equal(results.rows[0].NAME, 'Jason');
-            test.ok(results.rows[0].DATE);
-            test.ok(results.rows[0].TIME);
-            test.ok(results.rows[0].TIMESTAMP);
+  });
 
-            test.equal(results.labels.length, 5);
-            test.equal(results.labels[0], 'ID');
-            test.equal(results.labels[1], 'NAME');
-            test.ok(results.labels[2], 'DATE');
-            test.ok(results.labels[3], 'TIME');
-            test.ok(results.labels[4], 'TIMESTAMP');
+  it('should create table', function(done) {
+    derbyconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
 
-            test.done();
-          });
-        });
-      }
+      statement.executeUpdate(
+        "CREATE TABLE blah (id int, name varchar(10), date DATE, time TIME, timestamp TIMESTAMP)",
+        function(err, result) {
+          expect(err).to.be.null;
+          done();
+        }
+      );
     });
-  },
-  testselectzero: function(test) {
+  });
+
+  it('should insert', function(done) {
     derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeQuery("SELECT * FROM blah WHERE id = 1000", function(err, resultset) {
-          test.expect(9);
-          test.equal(null, err);
-          test.ok(resultset);
-          resultset.toObject(function(err, results) {
-            test.equal(results.rows.length, 0);
-            test.equal(results.labels.length, 5);
-            test.equal(results.labels[0], 'ID');
-            test.equal(results.labels[1], 'NAME');
-            test.ok(results.labels[2], 'DATE');
-            test.ok(results.labels[3], 'TIME');
-            test.ok(results.labels[4], 'TIMESTAMP');
-            test.done();
-          });
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "INSERT INTO blah VALUES (1, 'Jason', CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP)",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
     });
-  },
-  testdelete: function(test) {
+  });
+
+  it('should update', function(done) {
     derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DELETE FROM blah WHERE id = 2", function(err, result) {
-          test.expect(2);
-          test.equal(null, err);
-          test.ok(result && result == 1);
-          test.done();
-        });
-      }
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "UPDATE blah SET id = 2 WHERE name = 'Jason'",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
     });
-  },
-  testdroptable: function(test) {
+  });
+
+  it('should select', function(done) {
     derbyconn.conn.createStatement(function(err, statement) {
-      if (err) {
-        console.log(err);
-      } else {
-        statement.executeUpdate("DROP TABLE blah", function(err, result) {
-          test.expect(1);
-          test.equal(null, err);
-          test.done();
+      if (err) return done(err);
+
+      statement.executeQuery("SELECT * FROM blah", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObjArray(function(err, results) {
+          expect(err).to.be.null;
+          expect(results).to.have.lengthOf(1);
+          expect(results[0].NAME).to.equal('Jason');
+          expect(results[0].DATE).to.exist;
+          expect(results[0].TIME).to.exist;
+          expect(results[0].TIMESTAMP).to.exist;
+          done();
         });
-      }
+      });
     });
-  }
-};
+  });
+
+  it('should select object', function(done) {
+    derbyconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeQuery("SELECT * FROM blah", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObject(function(err, results) {
+          expect(err).to.be.null;
+          expect(results.rows).to.have.lengthOf(1);
+          expect(results.rows[0].NAME).to.equal('Jason');
+          expect(results.rows[0].DATE).to.exist;
+          expect(results.rows[0].TIME).to.exist;
+          expect(results.rows[0].TIMESTAMP).to.exist;
+
+          expect(results.labels).to.have.lengthOf(5);
+          expect(results.labels[0]).to.equal('ID');
+          expect(results.labels[1]).to.equal('NAME');
+          expect(results.labels[2]).to.equal('DATE');
+          expect(results.labels[3]).to.equal('TIME');
+          expect(results.labels[4]).to.equal('TIMESTAMP');
+          done();
+        });
+      });
+    });
+  });
+
+  it('should select zero', function(done) {
+    derbyconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeQuery("SELECT * FROM blah WHERE id = 1000", function(err, resultset) {
+        expect(err).to.be.null;
+        expect(resultset).to.exist;
+
+        resultset.toObject(function(err, results) {
+          expect(err).to.be.null;
+          expect(results.rows).to.have.lengthOf(0);
+          expect(results.labels).to.have.lengthOf(5);
+          expect(results.labels[0]).to.equal('ID');
+          expect(results.labels[1]).to.equal('NAME');
+          expect(results.labels[2]).to.equal('DATE');
+          expect(results.labels[3]).to.equal('TIME');
+          expect(results.labels[4]).to.equal('TIMESTAMP');
+          done();
+        });
+      });
+    });
+  });
+
+  it('should delete', function(done) {
+    derbyconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "DELETE FROM blah WHERE id = 2",
+        function(err, result) {
+          expect(err).to.be.null;
+          expect(result).to.equal(1);
+          done();
+        }
+      );
+    });
+  });
+
+  it('should drop table', function(done) {
+    derbyconn.conn.createStatement(function(err, statement) {
+      if (err) return done(err);
+
+      statement.executeUpdate(
+        "DROP TABLE blah",
+        function(err, result) {
+          expect(err).to.be.null;
+          done();
+        }
+      );
+    });
+  });
+});

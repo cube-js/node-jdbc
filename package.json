@@ -1,24 +1,24 @@
 {
   "name": "@cubejs-backend/jdbc",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Node Module JDBC wrapper",
   "main": "index.js",
   "dependencies": {
-    "async": "^3.2.5",
+    "async": "^3.2.6",
     "java": "^0.14",
-    "lodash": "4.17.21",
-    "uuid": "9.0.0",
-    "winston": "3.8.2"
+    "lodash": "^4.17.21",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
+    "chai": "^4",
     "jshint": "2.13.6",
     "lolex": "^6.0.0",
-    "nodeunit": "~0.11.3",
-    "q": "^1.5.1"
+    "mocha": "^10"
   },
   "scripts": {
     "pretest": "bash bin/startdbs",
-    "test": "nodeunit test",
+    "test": "mocha --exit",
     "posttest": "bash bin/stopdbs",
     "lint": "jshint lib/**.js test/**.js"
   },
