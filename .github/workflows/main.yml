@@ -87,7 +87,7 @@ jobs:
       - name: 💾 Install 💾
         run: yarn install
       - name: Set up new drivers
-        run: cp drivers-10.15/* drivers
+        run: cp drivers-10.17/* drivers
         if: matrix.new_drivers
       - name: 🧪 Test (Node ${{ matrix.node_version }}, Java ${{ matrix.java_version }}, ${{ matrix.distribution }}) 🧪
         run: yarn test
