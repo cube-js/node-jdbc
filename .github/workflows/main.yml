@@ -12,53 +12,26 @@ jobs:
         node_version:
           - 18
           - 20
-        include:
-          # Oracle
-          - distribution: oracle
-            java_version: 17
-          - distribution: oracle
-            java_version: 21
-            new_drivers: true
-          # Temurin
-          - distribution: temurin
-            java_version: 8
-          - distribution: temurin
-            java_version: 11
-          - distribution: temurin
-            java_version: 17
-          - distribution: temurin
-            java_version: 21
-            new_drivers: true
-          # Microsoft
-          - distribution: microsoft
-            java_version: 11
-          - distribution: microsoft
-            java_version: 17
-          - distribution: microsoft
-            java_version: 21
-            new_drivers: true
-          # Corretto
-          - distribution: corretto
-            java_version: 8
-          - distribution: corretto
-            java_version: 11
-          - distribution: corretto
-            java_version: 17
-          - distribution: corretto
-            java_version: 21
-            new_drivers: true
-          # Azul Zulu OpenJDK
-          - distribution: zulu
-            java_version: 8
-          - distribution: zulu
-            java_version: 11
-          - distribution: zulu
-            java_version: 17
-          - distribution: zulu
-            java_version: 21
-            new_drivers: true
+        distribution:
+          - oracle
+          - temurin
+          - microsoft
+          - corretto
+          - zulu
+        java_version:
+          - 8
+          - 11
+          - 17
+          - 21
         arch:
           - x64
+        exclude:
+          - distribution: oracle
+            java_version: 8
+          - distribution: oracle
+            java_version: 11
+          - distribution: microsoft
+            java_version: 8
     steps:
       - name: ☑️ Checkout ☑️
         uses: actions/checkout@v4
@@ -79,6 +52,6 @@ jobs:
         run: yarn install
       - name: Set up new drivers
         run: cp drivers-10.17/* drivers
-        if: matrix.new_drivers
+        if: ${{ matrix.java_version > 20 }}
       - name: 🧪 Test (Node ${{ matrix.node_version }}, Java ${{ matrix.java_version }}, ${{ matrix.distribution }}) 🧪
         run: yarn test
