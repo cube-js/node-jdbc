@@ -14,23 +14,56 @@ jobs:
         node_version:
           - 18
           - 20
-        java_version:
-          - 8
-          - 9
-          - 10
-          - 11
-          - 12
-          - 13
-          - 14
-          - 15
-          # - 21
         distribution:
           - oracle
           - temurin
           - microsoft
           - corretto
+          - zulu
+        java_version:
+          - 17
         arch:
           - x64
+        include:
+          # Oracle
+          - distribution: oracle
+            java_version: 17
+          - distribution: oracle
+            java_version: 21
+          # Temurin
+          - distribution: temurin
+            java_version: 8
+          - distribution: temurin
+            java_version: 11
+          - distribution: temurin
+            java_version: 17
+          - distribution: temurin
+            java_version: 21
+          # Microsoft
+          - distribution: microsoft
+            java_version: 11
+          - distribution: microsoft
+            java_version: 17
+          - distribution: microsoft
+            java_version: 21
+          # Corretto
+          - distribution: corretto
+            java_version: 8
+          - distribution: corretto
+            java_version: 11
+          - distribution: corretto
+            java_version: 17
+          - distribution: corretto
+            java_version: 21
+          # Azul Zulu OpenJDK
+          - distribution: zulu
+            java_version: 8
+          - distribution: zulu
+            java_version: 11
+          - distribution: zulu
+            java_version: 17
+          - distribution: zulu
+            java_version: 21
     steps:
       - name: 🧶 Get yarn cache directory path 🧶
         id: yarn-cache-dir-path
@@ -61,5 +94,5 @@ jobs:
           node-version: ${{ matrix.node_version }}
       - name: 💾 Install 💾
         run: yarn install
-      - name: 🧪 Test (Node ${{ matrix.node_version }}, Java ${{ matrix.java_version }}) 🧪
+      - name: 🧪 Test (Node ${{ matrix.node_version }}, Java ${{ matrix.java_version }}, ${{ matrix.distribution }}) 🧪
         run: yarn test
