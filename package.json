@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "async": "^3.2.6",
-    "java": "^0.14",
+    "java": "^0.18",
     "lodash": "^4.17.21",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
@@ -36,7 +36,7 @@
     "wrapper"
   ],
   "engines": {
-    "node": ">=16"
+    "node": ">=20"
   },
   "author": "Jason Ozias <jason.g.ozias@gmail.com>",
   "license": "MIT",
