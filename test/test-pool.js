@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const asyncjs = require('async');
 const Pool = require('../lib/pool');
 const jinst = require('../lib/jinst');
@@ -68,7 +67,7 @@ describe('Connection Pool Tests', function() {
       expect(testpool._pool.length).to.equal(0);
       expect(testpool._reserved.length).to.equal(3);
 
-      _.each(results, function(conn) {
+      results.forEach(function(conn) {
         testpool.release(conn, function(err) {});
       });
       done();
@@ -85,7 +84,8 @@ describe('Connection Pool Tests', function() {
       expect(testpool._reserved.length).to.equal(3);
       expect(testpool._pool.length).to.equal(0);
 
-      _.each(results, function(conn) {
+      // asyncjs.times yields no results when it errors out
+      (results || []).forEach(function(conn) {
         testpool.release(conn, function(err) {});
       });
       done();

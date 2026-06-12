@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const lolex = require("lolex");
 const Pool = require('../lib/pool');
 const chai = require('chai');

@@ -6,7 +6,6 @@
   "dependencies": {
     "async": "^3.2.6",
     "java": "^0.18",
-    "lodash": "^4.17.21",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
   },
