@@ -10,6 +10,9 @@ jobs:
   npm:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -18,13 +21,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
-      - name: Yarn install
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install --frozen-lockfile
-      - name: Set NPM token
-        run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+      - name: Install
+        run: npm ci
       - name: NPM publish
         run: npm publish --access public

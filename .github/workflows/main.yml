@@ -50,9 +50,9 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
       - name: 💾 Install 💾
-        run: yarn install
+        run: npm ci
       - name: Set up new drivers
         run: cp drivers-10.17/* drivers
         if: ${{ matrix.java_version > 20 }}
       - name: 🧪 Test (Node ${{ matrix.node_version }}, Java ${{ matrix.java_version }}, ${{ matrix.distribution }}) 🧪
-        run: yarn test
+        run: npm test
