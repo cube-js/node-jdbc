@@ -4,3 +4,4 @@ test
 drivers
 *.log
 sqltool.rc
+drivers-10.17
