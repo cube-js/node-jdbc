@@ -34,8 +34,8 @@ describe('buildObjectShape', function() {
       plain[name] = i;
     });
 
+    // A plain `{}` filled the same way is a dictionary on recent V8, but not on every version.
     expect(hasFastProperties(row)).to.equal(true);
-    expect(hasFastProperties(plain)).to.equal(false);
     expect(row).to.deep.equal(plain);
   });
 
