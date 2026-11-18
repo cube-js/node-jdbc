@@ -1,6 +1,6 @@
 {
   "name": "@cubejs-backend/jdbc",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Node Module JDBC wrapper",
   "main": "index.js",
   "dependencies": {
