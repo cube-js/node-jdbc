@@ -248,7 +248,7 @@ which is slow on large result sets and blocks the event loop. `toObjectBatchIter
 serializes rows inside the JVM on a worker thread and returns them one batch at a time.
 
 ```javascript
-const iter = await resultset.toObjectBatchIter({ batchSize: 4096 });
+const iter = await resultset.toObjectBatchIter({ batchSize: 2048 });
 // iter.labels and iter.types describe the columns.
 
 for await (const rows of iter) {
