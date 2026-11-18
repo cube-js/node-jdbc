@@ -194,7 +194,30 @@ describe('ResultSet toObjectBatchIter', function() {
     expect(Object.getPrototypeOf(row)).to.equal(Object.prototype);
     expect(Object.keys(row)).to.deep.equal(['__proto__', 'X']);
     expect(Object.getOwnPropertyDescriptor(row, '__proto__').value).to.equal(1);
-    expect(row.X).to.equal(2);
+    // The first column of a label wins, as in toObjArray().
+    expect(row.X).to.equal(1);
+  });
+
+  it('should return a __proto__ column of rows wider than the object shape limit', async function() {
+    const columns = Array.from({ length: 130 }, (_, i) => `CAST(id + ${i} AS INTEGER) AS c${i}`);
+    const { batches } = await readBatches(`SELECT id AS "__proto__", ${columns.join(', ')} FROM batch WHERE id = 1;`);
+    const row = batches[0][0];
+
+    expect(Object.getPrototypeOf(row)).to.equal(Object.prototype);
+    expect(Object.keys(row)).to.have.lengthOf(131);
+    expect(Object.keys(row)[0]).to.equal('__proto__');
+    expect(Object.getOwnPropertyDescriptor(row, '__proto__').value).to.equal(1);
+  });
+
+  it('should take the first column of a duplicate label like toObjArray', async function() {
+    const sql = 'SELECT id AS x, CAST(id + 1 AS INTEGER) AS x FROM batch WHERE id = 1;';
+    const { batches } = await readBatches(sql);
+    const resultset = await execute(sql);
+    const expected = await new Promise((resolve, reject) => {
+      resultset.toObjArray((err, rows) => (err ? reject(err) : resolve(rows)));
+    });
+
+    expect(batches[0]).to.deep.equal(expected);
   });
 
   describe('typeParsers', function() {
