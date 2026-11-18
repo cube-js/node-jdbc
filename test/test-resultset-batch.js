@@ -2,6 +2,11 @@ const chai = require('chai');
 const expect = chai.expect;
 const jinst = require('../lib/jinst');
 const JDBC = require('../lib/jdbc');
+const v8 = require('v8');
+const vm = require('vm');
+
+v8.setFlagsFromString('--allow-natives-syntax');
+const hasFastProperties = vm.runInThisContext('(function (o) { return %HasFastProperties(o); })');
 
 if (!jinst.isJvmCreated()) {
   jinst.addOption("-Xrs");
@@ -161,6 +166,35 @@ describe('ResultSet toObjectBatchIter', function() {
     const { batches } = await readBatches("SELECT * FROM batch WHERE id = -1;");
 
     expect(batches).to.deep.equal([]);
+  });
+
+  it('should keep wide rows in fast-properties mode', async function() {
+    const columns = Array.from({ length: 60 }, (_, i) => `CAST(id + ${i} AS INTEGER) AS c${i}`);
+    const { batches } = await readBatches(`SELECT ${columns.join(', ')} FROM batch WHERE id = 1;`);
+    const row = batches[0][0];
+
+    expect(Object.keys(row)).to.deep.equal(columns.map((_, i) => `C${i}`));
+    expect(row.C0).to.equal(1);
+    expect(row.C59).to.equal(60);
+    expect(hasFastProperties(row)).to.equal(true);
+  });
+
+  it('should return rows wider than the object shape limit', async function() {
+    const columns = Array.from({ length: 130 }, (_, i) => `CAST(id + ${i} AS INTEGER) AS c${i}`);
+    const { batches } = await readBatches(`SELECT ${columns.join(', ')} FROM batch WHERE id = 1;`);
+
+    expect(Object.keys(batches[0][0])).to.have.lengthOf(130);
+    expect(batches[0][0].C129).to.equal(130);
+  });
+
+  it('should return a __proto__ column and duplicate labels as plain cells', async function() {
+    const { batches } = await readBatches('SELECT id AS "__proto__", id AS x, CAST(id + 1 AS INTEGER) AS x FROM batch WHERE id = 1;');
+    const row = batches[0][0];
+
+    expect(Object.getPrototypeOf(row)).to.equal(Object.prototype);
+    expect(Object.keys(row)).to.deep.equal(['__proto__', 'X']);
+    expect(Object.getOwnPropertyDescriptor(row, '__proto__').value).to.equal(1);
+    expect(row.X).to.equal(2);
   });
 
   it('should read batch by batch with next()', async function() {
