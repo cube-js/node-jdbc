@@ -244,25 +244,20 @@ which is slow on large result sets and blocks the event loop. `toObjectBatchIter
 serializes rows inside the JVM on a worker thread and returns them one batch at a time.
 
 ```javascript
-resultset.toObjectBatchIter({ batchSize: 5000 }, function(err, iter) {
-  if (err) return callback(err);
+const iter = await resultset.toObjectBatchIter({ batchSize: 5000 });
+// iter.labels and iter.types describe the columns.
 
-  // iter.labels and iter.types describe the columns.
-  (function read() {
-    iter.next(function(err, rows) {
-      if (err) return callback(err);
-      // null means the result set is exhausted.
-      if (rows === null) return callback(null);
+for await (const rows of iter) {
+  rows.forEach((row) => console.log(row));
+}
 
-      rows.forEach(function(row) { console.log(row); });
-      read();
-    });
-  })();
-});
+// or batch by batch: resolves to null once the result set is exhausted
+const rows = await iter.next();
 ```
 
-Do not call `next()` again before the previous call has returned. Values are the same as
-`toObjArray()` returns, except that binary columns come back as base64 strings.
+Unlike the rest of the API it returns promises rather than taking callbacks. Do not call
+`next()` again before the previous call has settled. Values are the same as `toObjArray()`
+returns, except that binary columns come back as base64 strings.
 
 The Java helper behind it lives in `java/` and is compiled into `lib/node-jdbc.jar` by
 `npm run build` (needs a JDK); `npm test` and `npm pack` run the build automatically.
