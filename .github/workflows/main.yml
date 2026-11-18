@@ -5,7 +5,7 @@ name: CI
 jobs:
   node-jdbc:
     name: node-jdbc
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +44,7 @@ jobs:
       - name: 🐍 Python 🐍
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: "3.13"
       - name: 🔋 Node 🔋
         uses: actions/setup-node@v4
         with:
