@@ -16,7 +16,9 @@
     "mocha": "^10"
   },
   "scripts": {
-    "pretest": "bash bin/startdbs",
+    "build": "bash bin/build-java",
+    "prepack": "npm run build",
+    "pretest": "npm run build && bash bin/startdbs",
     "test": "mocha --exit --timeout 20000",
     "posttest": "bash bin/stopdbs",
     "lint": "jshint lib/**.js test/**.js"

@@ -7,3 +7,5 @@ mydb.*
 .DS_store
 .env
 
+lib/node-jdbc.jar
+test/testdb/
