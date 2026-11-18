@@ -90,7 +90,7 @@ describe('ResultSet NULL handling', function() {
       expect(err).to.be.null;
       expect(results).to.have.lengthOf(1);
       expect(results[0]).to.deep.equal({
-        ID: 2, B: false, TI: 0, SI: 0, I: 0, BI: '0', R: 0, D: 0, DEC: 0, S: ''
+        ID: 2, B: false, TI: 0, SI: 0, I: 0, BI: '0', R: 0, D: 0, DEC: '0.00', S: ''
       });
       done();
     });
@@ -101,7 +101,7 @@ describe('ResultSet NULL handling', function() {
       expect(err).to.be.null;
       expect(results).to.have.lengthOf(1);
       expect(results[0]).to.deep.equal({
-        ID: 3, B: true, TI: 1, SI: 2, I: 3, BI: '4', R: 1.5, D: 2.5, DEC: 3.25, S: 'x'
+        ID: 3, B: true, TI: 1, SI: 2, I: 3, BI: '4', R: 1.5, D: 2.5, DEC: '3.25', S: 'x'
       });
       done();
     });

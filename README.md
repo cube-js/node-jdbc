@@ -13,6 +13,10 @@ If I receieve enough sponsor interest I will switch back to active maintenance o
 ## Latest Version
 - 0.7.6
 
+## Requirements
+- Java 11 or newer
+- Node.js 20 or newer
+
 ## Installation
 - Release: ```npm i --save jdbc```
 - Development: ```npm i --save jdbc@next``` (this will install code from the master branch).
@@ -237,6 +241,51 @@ conn.createStatement(function(err, statement) {
   }
 });
 ```
+- **Reading large result sets in batches**
+
+`toObjArray()` and `toObjectIter()` read every cell with its own synchronous call into the JVM,
+which is slow on large result sets and blocks the event loop. `toObjectBatchIter()` reads and
+serializes rows inside the JVM on a worker thread and returns them one batch at a time.
+
+```javascript
+const iter = await resultset.toObjectBatchIter({ batchSize: 2048 });
+// iter.labels and iter.types describe the columns.
+
+for await (const rows of iter) {
+  rows.forEach((row) => console.log(row));
+}
+
+// or batch by batch: resolves to null once the result set is exhausted
+const rows = await iter.next();
+```
+
+Unlike the rest of the API it returns promises rather than taking callbacks. Do not call
+`next()` again before the previous call has settled. Values are the same as `toObjArray()`
+returns, except that binary columns come back as base64 strings.
+
+`typeParsers` converts values by column type, the way `pg` type parsers do. Keys are
+`java.sql.Types` codes; a parser receives every non-null value of the columns of that type, in
+the form `toObjectBatchIter()` would return it otherwise (binary as a base64 string, dates and
+timestamps as strings, decimals as strings):
+
+```javascript
+const Types = java.import('java.sql.Types');
+
+const iter = await resultset.toObjectBatchIter({
+  typeParsers: {
+    [Types.VARBINARY]: (value) => Buffer.from(value, 'base64'),
+    [Types.TIMESTAMP]: (value) => new Date(value.replace(' ', 'T') + 'Z'),
+    [Types.DECIMAL]: Number,
+  }
+});
+```
+
+All object readers return `BIGINT`, `DECIMAL`, and `NUMERIC` values as strings to preserve
+precision. SQL `NULL` remains `null`; `FLOAT`, `REAL`, and `DOUBLE` remain JavaScript numbers.
+
+The Java helper behind it lives in `java/` and is compiled into `lib/node-jdbc.jar` by
+`npm run build` (needs JDK 11 or newer); `npm test` and `npm pack` run the build automatically.
+
 - **Oracle and Closing Statements**
 
 If you are experiencing the "ORA-01000: maximum open cursors exceeded" error, you can avoid it by closing your statements with:
