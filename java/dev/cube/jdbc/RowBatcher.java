@@ -39,11 +39,13 @@ public final class RowBatcher {
         case Types.INTEGER:
           kinds[i] = INT;
           break;
+        case Types.NUMERIC:
+        case Types.DECIMAL:
+          kinds[i] = STRING;
+          break;
         case Types.FLOAT:
         case Types.REAL:
         case Types.DOUBLE:
-        case Types.NUMERIC:
-        case Types.DECIMAL:
           kinds[i] = DOUBLE;
           break;
         case Types.BIT:

@@ -96,11 +96,11 @@ describe('ResultSet toObjectBatchIter', function() {
         DT: null, TM: null, TS: null, BIN: null
       },
       {
-        ID: 2, B: false, TI: 0, SI: 0, BI: '0', R: 0, D: 0, DEC: 0, S: '',
+        ID: 2, B: false, TI: 0, SI: 0, BI: '0', R: 0, D: 0, DEC: '0.00', S: '',
         DT: '1970-01-01', TM: '00:00:00', TS: '1970-01-01 00:00:00.0', BIN: ''
       },
       {
-        ID: 3, B: true, TI: 1, SI: 2, BI: '9007199254740993', R: 1.5, D: 2.5, DEC: 3.25,
+        ID: 3, B: true, TI: 1, SI: 2, BI: '9007199254740993', R: 1.5, D: 2.5, DEC: '3.25',
         S: 'q"b\\s\nt\t\u0001\u00e9\u2028',
         DT: '2024-01-02', TM: '03:04:05', TS: '2024-01-02 03:04:05.123', BIN: 'AP8Q'
       }
@@ -118,6 +118,29 @@ describe('ResultSet toObjectBatchIter', function() {
     expect(batches[0]).to.deep.equal(rows);
   });
 
+  ['DECIMAL', 'NUMERIC'].forEach((type) => {
+    it('should preserve ' + type + ' precision as strings in both readers', async function() {
+      const sql = "SELECT CAST(9007199254740993.1234567890 AS " + type + "(30,10)) AS precise_value, " +
+        "CAST(-0.0000000001 AS " + type + "(30,10)) AS small_value, " +
+        "CAST(0 AS " + type + "(30,10)) AS zero_value, " +
+        "CAST(NULL AS " + type + "(30,10)) AS null_value FROM batch WHERE id = 1;";
+      const expected = [{
+        PRECISE_VALUE: '9007199254740993.1234567890',
+        SMALL_VALUE: '-0.0000000001',
+        ZERO_VALUE: '0.0000000000',
+        NULL_VALUE: null
+      }];
+      const { batches } = await readBatches(sql);
+      expect(batches).to.deep.equal([expected]);
+
+      const resultset = await execute(sql);
+      const rows = await new Promise((resolve, reject) => {
+        resultset.toObjArray((err, result) => (err ? reject(err) : resolve(result)));
+      });
+      expect(rows).to.deep.equal(expected);
+    });
+  });
+
   it('should split rows by batchSize', async function() {
     const { batches } = await readBatches(
       "SELECT x.id * 10 + y.id AS n FROM batch x, batch y ORDER BY 1;",
@@ -125,7 +148,7 @@ describe('ResultSet toObjectBatchIter', function() {
     );
 
     expect(batches.map((rows) => rows.length)).to.deep.equal([4, 4, 1]);
-    expect([].concat(...batches).map((row) => row.N)).to.deep.equal([11, 12, 13, 21, 22, 23, 31, 32, 33]);
+    expect([].concat(...batches).map((row) => row.N)).to.deep.equal(['11', '12', '13', '21', '22', '23', '31', '32', '33']);
   });
 
   it('should cut a batch by maxBatchChars', async function() {

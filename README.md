@@ -244,7 +244,7 @@ which is slow on large result sets and blocks the event loop. `toObjectBatchIter
 serializes rows inside the JVM on a worker thread and returns them one batch at a time.
 
 ```javascript
-const iter = await resultset.toObjectBatchIter({ batchSize: 5000 });
+const iter = await resultset.toObjectBatchIter({ batchSize: 4096 });
 // iter.labels and iter.types describe the columns.
 
 for await (const rows of iter) {
@@ -258,6 +258,9 @@ const rows = await iter.next();
 Unlike the rest of the API it returns promises rather than taking callbacks. Do not call
 `next()` again before the previous call has settled. Values are the same as `toObjArray()`
 returns, except that binary columns come back as base64 strings.
+
+All object readers return `BIGINT`, `DECIMAL`, and `NUMERIC` values as strings to preserve
+precision. SQL `NULL` remains `null`; `FLOAT`, `REAL`, and `DOUBLE` remain JavaScript numbers.
 
 The Java helper behind it lives in `java/` and is compiled into `lib/node-jdbc.jar` by
 `npm run build` (needs a JDK); `npm test` and `npm pack` run the build automatically.
