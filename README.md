@@ -259,6 +259,23 @@ Unlike the rest of the API it returns promises rather than taking callbacks. Do 
 `next()` again before the previous call has settled. Values are the same as `toObjArray()`
 returns, except that binary columns come back as base64 strings.
 
+`typeParsers` converts values by column type, the way `pg` type parsers do. Keys are
+`java.sql.Types` codes; a parser receives every non-null value of the columns of that type, in
+the form `toObjectBatchIter()` would return it otherwise (binary as a base64 string, dates and
+timestamps as strings, decimals as strings):
+
+```javascript
+const Types = java.import('java.sql.Types');
+
+const iter = await resultset.toObjectBatchIter({
+  typeParsers: {
+    [Types.VARBINARY]: (value) => Buffer.from(value, 'base64'),
+    [Types.TIMESTAMP]: (value) => new Date(value.replace(' ', 'T') + 'Z'),
+    [Types.DECIMAL]: Number,
+  }
+});
+```
+
 All object readers return `BIGINT`, `DECIMAL`, and `NUMERIC` values as strings to preserve
 precision. SQL `NULL` remains `null`; `FLOAT`, `REAL`, and `DOUBLE` remain JavaScript numbers.
 

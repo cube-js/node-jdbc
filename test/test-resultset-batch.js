@@ -197,6 +197,68 @@ describe('ResultSet toObjectBatchIter', function() {
     expect(row.X).to.equal(2);
   });
 
+  describe('typeParsers', function() {
+    const java = jinst.getInstance();
+    const jdbcType = (name) => java.getStaticFieldValue('java.sql.Types', name);
+    const sql = "SELECT id, bin, dt, ts, dec, s FROM batch ORDER BY id;";
+
+    it('should convert values of the given JDBC types', async function() {
+      const { batches } = await readBatches(sql, {
+        typeParsers: {
+          [jdbcType('VARBINARY')]: (value) => Buffer.from(value, 'base64'),
+          [jdbcType('DATE')]: (value) => new Date(`${value}T00:00:00Z`),
+          [jdbcType('DECIMAL')]: Number,
+        }
+      });
+      const rows = batches[0];
+
+      expect(Buffer.isBuffer(rows[2].BIN)).to.equal(true);
+      expect(rows[2].BIN.equals(Buffer.from([0x00, 0xff, 0x10]))).to.equal(true);
+      expect(rows[1].BIN.length).to.equal(0);
+      expect(rows[2].DT).to.be.an.instanceof(Date);
+      expect(rows[2].DT.toISOString()).to.equal('2024-01-02T00:00:00.000Z');
+      expect(rows[2].DEC).to.equal(3.25);
+      // types without a parser are left as they are
+      expect(rows[2].ID).to.equal(3);
+      expect(rows[2].TS).to.equal('2024-01-02 03:04:05.123');
+      expect(rows[2].S).to.be.a('string');
+    });
+
+    it('should not call a parser for NULL', async function() {
+      const seen = [];
+      const { batches } = await readBatches(sql, {
+        typeParsers: {
+          [jdbcType('VARBINARY')]: (value) => { seen.push(value); return value; },
+          [jdbcType('TIMESTAMP')]: (value) => { seen.push(value); return value; },
+        }
+      });
+
+      expect(batches[0][0]).to.include({ BIN: null, TS: null });
+      expect(seen).to.have.lengthOf(4);
+      expect(seen).to.not.include(null);
+    });
+
+    it('should accept a parser for the result set of any batch', async function() {
+      const { batches } = await readBatches("SELECT id FROM batch ORDER BY id;", {
+        batchSize: 2,
+        typeParsers: { [jdbcType('INTEGER')]: (value) => value * 10 }
+      });
+
+      expect(batches).to.deep.equal([[{ ID: 10 }, { ID: 20 }], [{ ID: 30 }]]);
+    });
+
+    it('should reject a parser that is not a function', async function() {
+      let error = null;
+      try {
+        await readBatches(sql, { typeParsers: { [jdbcType('DATE')]: 'date' } });
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).to.be.an.instanceof(TypeError);
+    });
+  });
+
   it('should read batch by batch with next()', async function() {
     const iter = await (await execute("SELECT id FROM batch ORDER BY id;")).toObjectBatchIter({ batchSize: 2 });
 
