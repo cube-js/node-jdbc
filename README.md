@@ -13,6 +13,10 @@ If I receieve enough sponsor interest I will switch back to active maintenance o
 ## Latest Version
 - 0.7.6
 
+## Requirements
+- Java 11 or newer
+- Node.js 20 or newer
+
 ## Installation
 - Release: ```npm i --save jdbc```
 - Development: ```npm i --save jdbc@next``` (this will install code from the master branch).
@@ -280,7 +284,7 @@ All object readers return `BIGINT`, `DECIMAL`, and `NUMERIC` values as strings t
 precision. SQL `NULL` remains `null`; `FLOAT`, `REAL`, and `DOUBLE` remain JavaScript numbers.
 
 The Java helper behind it lives in `java/` and is compiled into `lib/node-jdbc.jar` by
-`npm run build` (needs a JDK); `npm test` and `npm pack` run the build automatically.
+`npm run build` (needs JDK 11 or newer); `npm test` and `npm pack` run the build automatically.
 
 - **Oracle and Closing Statements**
 

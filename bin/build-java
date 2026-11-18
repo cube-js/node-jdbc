@@ -1,6 +1,6 @@
 #!/bin/bash
-# Compiles java/ into lib/node-jdbc.jar. Targets Java 8 bytecode so the jar loads on every
-# JVM the package supports, whichever JDK builds it.
+# Compiles java/ into lib/node-jdbc.jar. Targets Java 11, the minimum version the package
+# supports, so the jar loads on every supported JVM whichever JDK builds it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -8,5 +8,5 @@ cd "$(dirname "$0")/.."
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
 
-javac -source 8 -target 8 -Xlint:-options -d "$out" $(find java -name '*.java')
+javac --release 11 -d "$out" $(find java -name '*.java')
 jar cf lib/node-jdbc.jar -C "$out" .
